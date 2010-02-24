@@ -1,9 +1,9 @@
 " vim:fdm=marker:
 "
-
 " TreeMenu {{{
 " Version: 0.2
 " Author:  Cornelius <cornelius.howl@gmail.com>
+" ScriptType: plugin
 
 if exists('g:treemenu_loaded')
   finish

@@ -1,0 +1,39 @@
+
+TreeMenu Class
+==============
+let you create tree menu in vim buffer very easily.
+
+Example
+==============
+
+You should write your tree menu plugin in `~/.vim/after/plugin/blah.vim` :
+
+    let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
+    cal m.addItem( g:MenuItem.create({ 'label': 'Edit' , 'expanded': 1 , 'childs':[
+            \    g:MenuItem.create({
+            \               'label': 'Edit Dispatcher'  , 
+            \               'close': 0 ,  
+            \               'exec_cmd': printf('tabedit  lib/%s/Dispatcher.pm',appname) }),
+            \    g:MenuItem.create({ 
+            \               'label': 'Edit View' ,
+            \               'close': 0 ,  
+            \               'exec_cmd': printf('tabedit lib/%s/View.pm',appname) }),
+            \    g:MenuItem.create({ 
+            \               'label': 'Edit Config'      ,
+            \               'close': 0 ,  
+            \               'exec_cmd': 'tabedit etc/config.yml' }),
+            \    g:MenuItem.create({ 
+            \               'label': 'Edit Site Config' ,
+            \               'close': 0 ,  
+            \               'exec_cmd': 'tabedit etc/site_config.yml' })
+            \    ]}) )
+
+    cal m.addItem( g:MenuItem.create({ 'label': 'New Model' , 
+            \'exec_cmd': 'JiftyNewModel', 'cmd_inputs': [ g:mb_input('Model Name:','','') ] }))
+
+    cal m.addItem( g:MenuItem.create({ 'label': 'New Action' , 
+        \'exec_cmd': 'JiftyNewAction' , 'cmd_inputs': [ g:mb_input('Action Name:','','') ] }))
+
+    cal m.addItem( g:MenuItem.create({ 'label': 'Extend View' , 'exec_cmd': 'JiftyExtendView' }))
+    cal m.render()
+

@@ -486,19 +486,19 @@ let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
 
 cal m.addItem( g:MenuItem.create({ 
     \ 'label': 'Edit' , 'expanded': 1 , 'childs': [
-      \ g:MenuItem.create({
+      \ {
       \   'label': 'Echo YES'  , 
       \   'close': 0 ,  
-      \   'exe': 'echo' , 'args': [ '"YES"' ] })
-      \ ,g:MenuItem.create({
+      \   'exe': 'echo' , 'args': [ '"YES"' ] }
+      \ ,{
       \   'label': 'Echo with arguments'  , 
       \   'close': 0 ,  
-      \   'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ]   })
-      \ ,g:MenuItem.create({
+      \   'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ]   }
+      \ ,{
       \   'label': 'Menu Exe Test', 
       \   'close': 0,  
-      \   'exe': function('MenuExeTest') })
-    \ ]   }) 
+      \   'exe': function('MenuExeTest') }
+    \ ]   })
     \ )
 
 cal m.render()

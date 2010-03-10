@@ -8,11 +8,15 @@ Example
 
 You should write your tree menu plugin in `~/.vim/after/plugin/blah.vim` :
 
+    fun! Func1(...)
+        echo a:0
+    endf
     new
     unlet m
     let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
     cal m.addPath( 'Tree.Node1',      { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
     cal m.addPath( 'Tree.Node2.zxcv', { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
+    cal m.addPath( 'Tree.Node2.zxcv', { 'exe': function('Func1') , 'args': [ '"YES"' ] , 'close': 0 })
     cal m.addPath( 'Tree.Ah Space.A2', { 'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ] , 'close': 0 })
     cal m.render()
 

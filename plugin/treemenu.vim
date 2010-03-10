@@ -449,7 +449,7 @@ endf
 
 " Test Code {{{
 " ========================================================
-" finish
+finish
 " addPath Test {{{
 new
 unlet m

@@ -1,21 +1,34 @@
 " vim:fdm=marker:
 "
 " TreeMenu {{{
-" Version: 0.2
+" Version: 0.3
 " Author:  Cornelius <cornelius.howl@gmail.com>
 " ScriptType: plugin
 
 if exists('g:treemenu_loaded')
-  finish
+  "finish
 endif
 let g:treemenu_loaded = 1
 
+fun! s:FoundNode(node)
+  if type(a:node) == type({}) && has_key(a:node,'id')
+    return 1
+  else
+    return 0
+  endif
+endf
+
 " MenuBuffer Class {{{
-let g:MenuBuffer = { 'buf_nr' : -1 , 'items': [  ] }
+let g:MenuBuffer = { 'buf_nr' : -1 , 'root': {}  }
 
 fun! g:MenuBuffer.create(options)
+  let rt_label = 'root'
+  if has_key(a:options,'rootLabel')
+    let rt_label = a:options.rootLabel
+  endif
+
   let menu_obj = copy(self)
-  let menu_obj.items = [ ]
+  let menu_obj.root = g:MenuItem.create({ 'label': rt_label, 'expanded': 1 })
   cal extend(menu_obj,a:options)
   cal menu_obj.init_buffer()
   return menu_obj
@@ -54,13 +67,41 @@ fun! g:MenuBuffer.setBufNr(nr)
 endf
 
 fun! g:MenuBuffer.addItem(item)
-  cal add(self.items,a:item)
+  let a:item.parent = self.root
+  cal add(self.root.childs, a:item)
   return a:item
 endf
 
-fun! g:MenuBuffer.addItems(items)
-  cal extend(self.items,a:items)
-  return a:items
+fun! g:MenuBuffer.createChild(arg)
+  return self.root.createChild(a:arg)
+endf
+
+fun! g:MenuBuffer.addPath(path,args)
+  let labels = split(a:path,'\.')
+  let last_label = labels[ len( labels ) - 1 ]
+  let node = self.root
+
+  while s:FoundNode(node) && len(labels) > 0
+    let label = remove( labels , 0 )
+    let next_node = node.findChildByLabel( label )
+
+    if ! s:FoundNode(next_node) 
+      let next_node = node.createChild({ 'label': label })
+    endif
+
+    let node = next_node
+    unlet label
+  endwhile
+
+
+  if s:FoundNode(node) && node.label == last_label
+    cal extend(node,a:args)
+  else
+    echoerr "addPath Error"
+    echoerr a:path
+    echoerr a:args
+    echoerr node
+  endif
 endf
 
 fun! g:MenuBuffer.findWindow(switch)
@@ -70,6 +111,8 @@ fun! g:MenuBuffer.findWindow(switch)
   endif
   return win
 endf
+
+
 
 
 " 'cmd_inputs': [  
@@ -91,8 +134,8 @@ fun! s:take_input_args(inputs)
 
     let l:default_value = ""
     if type(input.default_value) == type(function('tr'))
-      let default_func = function(input.default_value)
-      let l:default_value = default_func()
+      " XXX: provide callback arguments
+      let l:default_value = call( input.default_value , [] )
     else
       let l:default_value = input.default_value
     endif
@@ -108,13 +151,45 @@ fun! s:take_input_args(inputs)
   return args
 endf
 
+" New Synopsis:
+"  { label: ... , exe: function('FunctionName') , args: [ ... ]
+"  { label: ... , exe: function('FunctionName') , inputs: [ .. ]
+"  { label: ... , exe: 'Command', args: [ ... ]
+"  { label: ... , exe: 'Command', inputs: [ .. ]
+" 
+" Current Interface:
+"  { label: ... , exec_cmd: 'Command' , cmd_inputs: [ ... ]
 fun! g:MenuBuffer.execCurrent()
   let id = self.getCurrentMenuId()
   let item = self.findItem(id)
-  if type(item) == 4
-    if has_key(item,'exec_cmd')
+  if type(item) == type({})
+
+    " if exe is a function reference
+    if has_key(item,'exe') && type(item.exe) == type(function('tr'))
+      if has_key(item,'args')
+        cal call(item.exe,item.args)
+      elseif has_key(item,'inputs')
+        cal call(item.exe,s:take_input_args(item.inputs))
+      else
+        cal call(item.exe,[])
+      endif
+
+    " if exe is a string , then this should be a command.
+    elseif has_key(item,'exe') && type(item.exe) == type("")
+      if has_key(item,'args')
+        exec item.exe . ' ' . join(item.args,' ')
+      elseif has_key(item,'inputs')
+        exec item.exe . ' ' . join(s:take_input_args(item.inputs),' ')
+      else
+        exec item.exe
+      endif
+
+    " XXX:
+    " old api, should be deprecated.
+    elseif has_key(item,'exec_cmd')
       if has_key(item,'cmd_inputs')
-        exec item.exec_cmd . ' ' . join(s:take_input_args( item.cmd_inputs ),' ')
+        exec item.exec_cmd . ' ' . join(s:take_input_args( 
+          item.cmd_inputs ),' ')
       else
         exec item.exec_cmd
       endif
@@ -127,8 +202,10 @@ fun! g:MenuBuffer.execCurrent()
         close
       endif
     else
-      echo "Can't execute!"
+      redraw
+      echo "Can't execute."
     endif
+
   endif
 endf
 
@@ -155,9 +232,7 @@ fun! g:MenuBuffer.render()
   let cur = getpos('.')
   let win = self.findWindow(1)
   let out = [  ]
-  for item in self.items
-    cal add(out,item.render())
-  endfor
+  cal add(out,self.root.render())
 
   setlocal modifiable
   if line('$') > 1 
@@ -181,24 +256,17 @@ endf
 
 fun! g:MenuBuffer.getCurrentLevel()
   let line = getline('.')
-  let idx = stridx(line,'[')
+  let idx = stridx(line,' [')
   return idx - 1
 endf
 
 fun! g:MenuBuffer.getCurrentMenuId()
-  let id = matchstr(getline('.'),'\(\[\)\@<=\d\+\(\)\@>')
+  let id = matchstr(getline('.'),'\( \[\)\@<=\d\+\(\)\@>')
   return str2nr(id)
 endf
 
 fun! g:MenuBuffer.findItem(id)
-  for item in self.items
-    let l:ret = item.findItem(a:id)
-    if type(l:ret) == 4
-      return l:ret
-    endif
-    unlet l:ret
-  endfor
-  return -1
+  return self.root.findItem(a:id)
 endf
 " }}}
 " MenuItem Class {{{
@@ -256,6 +324,17 @@ fun! g:MenuItem.createChild(options)
   return child
 endf
 
+fun! g:MenuItem.findChildByLabel(name)
+  if has_key(self,'childs')
+    for ch in self.childs 
+      if ch.label == a:name
+        return ch
+      endif
+    endfor
+  endif
+  return {}
+endf
+
 fun! g:MenuItem.findItem(id)
   if self.id == a:id
     return self
@@ -283,6 +362,10 @@ fun! g:MenuItem.getLevel(lev)
   endif
 endf
 
+fun! g:MenuItem.idString()
+  return ' [' . self.id . ']'
+endf
+
 fun! g:MenuItem.displayString()
   let lev = self.getLevel(0)
 
@@ -293,13 +376,13 @@ fun! g:MenuItem.displayString()
       let op = '+'
     endif
     let indent = repeat('-', lev)
-    return op . indent . self.label . '[' . self.id . ']'
+    return op . indent . self.label . self.idString()
   elseif has_key(self,'parent')
     let indent = repeat('-', lev)
-    return '-' . indent . self.label . '[' . self.id . ']'
+    return '|' . indent . self.label . self.idString()
   else
     let indent = repeat('-', lev)
-    return '-' . indent . self.label . '[' . self.id . ']'
+    return '-' . indent . self.label . self.idString()
   endif
 endf
 
@@ -355,6 +438,71 @@ fun! g:MenuItem.render( )
   return join(printlines,"\n")
 endf
 
+" }}}
+
+
+" Test Code {{{
+" ========================================================
+finish
+" addPath Test {{{
+new
+unlet m
+let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
+cal m.addPath( 'Tree.Node1',      { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
+cal m.addPath( 'Tree.Node2.zxcv', { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
+cal m.addPath( 'Tree.Ah Space.A1', { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
+cal m.addPath( 'Tree.Ah Space.A2', { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
+cal m.render()
+finish
+" }}}
+
+" Find Node by label {{{
+new
+let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
+cal m.addItem({ 
+      \ 'label': 'Test' , 'expanded': 1 , 'childs': [
+      \  { 'label': 'A1' }
+      \ ,{ 'label': 'A2' }
+      \ ,{ 'label': 'B3', 'childs': [ 
+      \         g:MenuItem.create({ 'label': 'CC'  })  ]}
+      \ ]} )
+
+let node = m.root.findChildByLabel( 'Test' ).findChildByLabel('B3').findChildByLabel('CC')
+echo node.label
+unlet m
+unlet node
+finish
+" }}}
+" The original Way to create menu {{{
+finish
+vnew
+"set verbose=12
+unlet m
+
+fun! MenuExeTest()
+  echo 'MenuExeTest!!!'
+endf
+let m = g:MenuBuffer.create({ 'buf_nr': bufnr('.') })
+
+cal m.addItem( g:MenuItem.create({ 
+    \ 'label': 'Edit' , 'expanded': 1 , 'childs': [
+      \ g:MenuItem.create({
+      \   'label': 'Echo YES'  , 
+      \   'close': 0 ,  
+      \   'exe': 'echo' , 'args': [ '"YES"' ] })
+      \ ,g:MenuItem.create({
+      \   'label': 'Echo with arguments'  , 
+      \   'close': 0 ,  
+      \   'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ]   })
+      \ ,g:MenuItem.create({
+      \   'label': 'Menu Exe Test', 
+      \   'close': 0,  
+      \   'exe': function('MenuExeTest') })
+    \ ]   }) 
+    \ )
+
+cal m.render()
+set verbose=0
 " }}}
 
 " }}}

@@ -17,6 +17,14 @@ You should write your tree menu plugin in `~/.vim/after/plugin/blah.vim` :
     cal m.addPath( 'Tree.Node1',      { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
     cal m.addPath( 'Tree.Node2.zxcv', { 'exe': 'echo' , 'args': [ '"YES"' ] , 'close': 0 })
     cal m.addPath( 'Tree.Node2.zxcv', { 'exe': function('Func1') , 'args': [ '"YES"' ] , 'close': 0 })
-    cal m.addPath( 'Tree.Ah Space.A2', { 'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ] , 'close': 0 })
+    cal m.addPath( 'Tree.Ah Space.A2', { 'exe': 'echo' , 'inputs': [ ['Test:','123'] ] , 'close': 0 })
     cal m.render()
 
+inputs option:
+
+    'inputs':[ [ 
+        {Label: String} ,
+        {Default Value: String|Integer|Function ref} , 
+        {Command Completion: String (optional) },
+        {Skip When Empty: Bool (optional) },
+    ],[ .. ], [ .. ] ]

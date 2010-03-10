@@ -88,10 +88,19 @@ fun! s:take_input_args(inputs)
   let args = []
   for input in a:inputs
     call inputsave()
-    if has_key(input,'completion')
-      let arg = input( input.label , input.default_value , input.completion )
+
+    let l:default_value = ""
+    if type(input.default_value) == type(function('tr'))
+      let default_func = function(input.default_value)
+      let l:default_value = default_func()
     else
-      let arg = input( input.label , input.default_value )
+      let l:default_value = input.default_value
+    endif
+
+    if has_key(input,'completion')
+      let arg = input( input.label , l:default_value , input.completion )
+    else
+      let arg = input( input.label , l:default_value )
     endif
     call inputrestore()
     call add(args,arg)

@@ -194,8 +194,7 @@ fun! g:MenuBuffer.execCurrent()
     " old api, should be deprecated.
     elseif has_key(item,'exec_cmd')
       if has_key(item,'cmd_inputs')
-        exec item.exec_cmd . ' ' . join(s:take_input_args( 
-          item.cmd_inputs ),' ')
+        exec item.exec_cmd . ' ' . join(s:take_input_args( item.cmd_inputs ),' ')
       else
         exec item.exec_cmd
       endif

@@ -76,8 +76,14 @@ fun! g:MenuBuffer.createChild(arg)
   return self.root.createChild(a:arg)
 endf
 
-fun! g:MenuBuffer.addPath(path,args)
-  let labels = split(a:path,'\.')
+fun! g:MenuBuffer.addPath(...)
+  let path = a:1
+  let args = {}
+  if a:0 == 2
+    let args = a:2
+  endif
+
+  let labels = split(path,'\.')
   let last_label = labels[ len( labels ) - 1 ]
   let node = self.root
 
@@ -95,11 +101,11 @@ fun! g:MenuBuffer.addPath(path,args)
 
 
   if s:FoundNode(node) && node.label == last_label
-    cal extend(node,a:args)
+    cal extend(node,args)
   else
     echoerr "addPath Error"
-    echoerr a:path
-    echoerr a:args
+    echoerr a:0
+    echoerr a:1
     echoerr node
   endif
 endf
@@ -443,7 +449,7 @@ endf
 
 " Test Code {{{
 " ========================================================
-finish
+" finish
 " addPath Test {{{
 new
 unlet m

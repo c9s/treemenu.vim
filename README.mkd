@@ -20,6 +20,27 @@ You should write your tree menu plugin in `~/.vim/after/plugin/blah.vim` :
     cal m.addPath( 'Tree.Ah Space.A2', { 'exe': 'echo' , 'inputs': [ ['Test:','123'] ] , 'close': 0 })
     cal m.render()
 
+item options:
+
+    label: (string)
+        item label
+
+    exe: (string|function)
+        command or function to execute.
+
+    args (list)
+        arguments for exe
+
+    close: (boolean)
+        close buffer after executing command.
+        if you try a tab in command, you should set this to 0.
+
+    refresh: (boolean)
+        drop menu buffer after executing command.
+
+    inputs: (list[ list ])
+        take arguemnts from input
+
 inputs option:
 
     'inputs':[ [ 

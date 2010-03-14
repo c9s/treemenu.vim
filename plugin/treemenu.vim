@@ -68,7 +68,10 @@ endf
 
 fun! g:MenuBuffer.addItem(item)
   let a:item.parent = self.root
-  cal add(self.root.childs, a:item)
+  if ! has_key(self.root, 'childs')
+    let self.root.childs = []
+  endif
+  cal add(self.root.childs,a:item)
   return a:item
 endf
 
@@ -137,12 +140,15 @@ endf
 
 fun! s:mb_input2(list)
   let arg = { 'label': a:list[0], 'default_value': a:list[1] }
+
+  " set default to skip_when_empty
   let arg.skip_when_empty = 1
 
-  if len( a:list ) > 2
+  if len( a:list ) > 2 && strlen(a:list[2]) > 1
     let arg.completion = a:list[2]
   endif
-  if len( a:list ) > 3
+
+  if len( a:list ) > 3 && a:list[3] == 0
     let arg.skip_when_empty = a:list[3]
   endif
   return arg
@@ -187,18 +193,17 @@ fun! g:MenuBuffer.execVerbose(cmd,args)
   sleep 600m
 endf
 
-" New Synopsis:
+
+" menu item args:
 "  { label: ... , exe: function('FunctionName') , args: [ ... ]
 "  { label: ... , exe: function('FunctionName') , inputs: [ .. ]
 "  { label: ... , exe: 'Command', args: [ ... ]
 "  { label: ... , exe: 'Command', inputs: [ .. ]
 " 
-" Current Interface:
-"  { label: ... , exec_cmd: 'Command' , cmd_inputs: [ ... ]
 fun! g:MenuBuffer.execCurrent()
   let id = self.getCurrentMenuId()
+  let bufnr = bufnr('%')
   let item = self.findItem(id)
-
 
   try 
     if type(item) == type({}) && has_key(item,'exe')
@@ -271,6 +276,10 @@ fun! g:MenuBuffer.execCurrent()
       if item.close
         close
       endif
+
+      if item.refresh 
+        exec bufnr . 'bw!'
+      endif
     endif
   catch /Skip/
     redraw
@@ -283,17 +292,16 @@ endf
 fun! g:MenuBuffer.toggleCurrent()
   let id = self.getCurrentMenuId()
   let item = self.findItem(id)
-  if type(item) == 4
+  if type(item) == type({})
     cal item.toggle()
   endif
   cal self.render()
 endf
 
-" FIXME:
 fun! g:MenuBuffer.toggleCurrentR()
   let id = self.getCurrentMenuId()
   let item = self.findItem(id)
-  if type(item) == 4
+  if type(item) == type({})
     cal item.toggleR()
   endif
   cal self.render()
@@ -342,7 +350,7 @@ endf
 " }}}
 " MenuItem Class {{{
 
-let g:MenuItem = {'id':0, 'expanded':0 , 'close':1 }
+let g:MenuItem = {'id':0, 'expanded':0 , 'close':1 , 'refresh':0 }
 
 " Factory method
 fun! g:MenuItem.create(options)
@@ -413,7 +421,7 @@ fun! g:MenuItem.findItem(id)
     if has_key(self,'childs')
       for ch in self.childs 
         let l:ret = ch.findItem(a:id)
-        if type(l:ret) == 4
+        if type(l:ret) == type({})
           return l:ret
         endif
         unlet l:ret
@@ -421,6 +429,12 @@ fun! g:MenuItem.findItem(id)
     endif
     return -1
   endif
+endf
+
+fun! g:MenuItem.addItem(item)
+  let item = a:item
+  let item.parent = self
+  cal add(self.childs,item)
 endf
 
 fun! g:MenuItem.getLevel(lev)

@@ -19,7 +19,7 @@ fun! s:FoundNode(node)
 endf
 
 " MenuBuffer Class {{{
-let g:MenuBuffer = { 'buf_nr' : -1 , 'root': {}  }
+let g:MenuBuffer = { 'buf_nr' : -1 , 'root': {} , 'exec_sleep': 0  }
 
 fun! g:MenuBuffer.create(options)
   let rt_label = 'root'
@@ -190,7 +190,9 @@ fun! g:MenuBuffer.execVerbose(cmd,args)
   elseif type(a:cmd) == type('')
     echo 'Executing Command: "' . a:cmd . '" ' . join(a:args,' ')
   endif
-  sleep 600m
+  if self.exec_sleep > 0
+    exec 'sleep ' . self.exec_sleep . 'm'
+  endif
 endf
 
 

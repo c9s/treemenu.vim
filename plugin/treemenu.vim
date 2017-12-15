@@ -130,7 +130,7 @@ endf
 
 
 " Transform Input Args into Hash (Dictionary)
-fun! g:mb_input(...)
+fun! g:MBInput(...)
   let arg = { 'label': a:1, 'default_value': a:2 }
   if strlen(a:3) > 0
     let arg.completion = a:3
@@ -580,7 +580,7 @@ cal m.addItem( g:MenuItem.create({
       \ ,{
       \   'label': 'Echo with arguments'  , 
       \   'close': 0 ,  
-      \   'exe': 'echo' , 'inputs': [ g:mb_input('Test:','123','') ]   }
+      \   'exe': 'echo' , 'inputs': [ g:MBInput('Test:','123','') ]   }
       \ ,{
       \   'label': 'Menu Exe Test', 
       \   'close': 0,  
